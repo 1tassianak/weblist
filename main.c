@@ -1,24 +1,5 @@
 #include "main.h"
 
-int printWebList(pweblist web) {
-    if (!web) return FAIL;
-    for (int i = 0; i < web->totalLeaves; i++) {
-        printf("Chave %d: ", web->nodes[i].key);
-        pDDLL lista = web->nodes[i].list;
-        if (!lista) {
-            printf("Lista vazia\n");
-            continue;
-        }
-        Node *aux = lista->head;
-        while (aux != NULL) {
-            printf("%d ", *(int *)aux->data);
-            aux = aux->next;
-        }
-        printf("\n");
-    }
-    return SUCCESS;
-}
-
 void loadData(const char *filename, pweblist web) {
     FILE *file = fopen(filename, "r");
     if (file == NULL) {
@@ -61,14 +42,8 @@ int main() {
     iDado(web, &dado_para_inserir);
 
     // Imprimir apenas os dados restantes na WebList
-    for (int i = 0; i < web->totalLeaves; i++) {
-        pDDLL lista = web->nodes[i].list;
-        Node *aux = lista->head;
-        while (aux != NULL) {
-            printf("%d ", *(int *)aux->data);
-            aux = aux->next;
-        }
-    }
+    pLista(web);
+    
     printf("\n");
 
     // Destruir a WebList

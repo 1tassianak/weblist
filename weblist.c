@@ -120,7 +120,15 @@ int pLista(pweblist web) {
     // Lógica para percorrer listas
     for (int i = 0; i < web->totalLeaves; i++) {
         int count = countElements(web->nodes[i].list);
-        printf("Nó %d (Chave %d): Elementos: %d\n", i, web->nodes[i].key, count);
+        printf("Nó %d (Chave %d): Nº de Elementos: %d Elementos da lista: ", i, web->nodes[i].key, count);
+        // Percorrer a lista
+        int temp;
+        for (int j = 0; j < count; j++) {
+            if (sPosition(web->nodes[i].list, j, &temp) == SUCCESS) {
+                printf("%d ", temp);
+            }
+        }
+        printf("\n");
     }
     return SUCCESS;
 }
