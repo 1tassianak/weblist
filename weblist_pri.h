@@ -20,6 +20,8 @@ typedef struct weblist {
 // Funções auxiliares
 int balanceWebList(pweblist web);
 int calculateNodes(int level);
+// Função auxiliar para redistribuir elementos entre as folhas
+void redistributeElements(pweblist web);
 
 
 #endif

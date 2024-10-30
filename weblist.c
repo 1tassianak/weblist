@@ -10,7 +10,7 @@ int cWL(ppweblist web, int level, int sizedata) {
 
     //define o nível da weblist
     (*web)->level = level;
-    //define o número de nós folhas (nesse caso, 8)
+    //define o número de nós folhas da weblist
     (*web)->totalLeaves = calculateNodes(level);
     //aloca espaço para os nós
     (*web)->nodes = (WebListNode *)malloc((*web)->totalLeaves * sizeof(WebListNode));
@@ -68,37 +68,38 @@ int dWL(ppweblist web) {
 
 //função para inserir dado com verificação de balanceamento
 int iDado(pweblist web, int *dado) {
-    //se a weblist não existe, falha
     if (!web || !dado) return FAIL;
-    int minIndex = 0;
-    int minCount = countElements(web->nodes[0].list);
 
-    for (int i=0; i<web->totalLeaves; i++) {
-        int count = countElements(web->nodes[i].list);
-        if (count < minCount) {
-            minCount = count;
-            minIndex = i;
-        }
-    }
+    // Encontra o próximo índice usando round-robin
+    static int nextIndex = 0;
+    nextIndex = (nextIndex + 1) % web->totalLeaves;
 
-    return iEnd(web->nodes[minIndex].list, dado);
+    // Insere o dado no nó selecionado
+    if (iEnd(web->nodes[nextIndex].list, dado) == FAIL) return FAIL;
+
+    // printf - vou inserir o valor x no nó y no final da lista - para debug
+    printf("Inserindo o valor %d no nó %d no final da lista\n", *dado, nextIndex);
+
+    // printf da lista - para debug
+    pLista(web);
+
+    // Verifica e ajusta o balanceamento das folhas
+    return balanceWebList(web);
 }
 
-
-//função para remover dado
+// Função para remover um dado da WebList de forma balanceada
 int rDado(pweblist web, int *dado) {
-    //verifica se a weblist existe, se não, falha
     if (!web || !dado) return FAIL;
 
+    // Tenta remover o dado em cada folha
     for (int i = 0; i < web->totalLeaves; i++) {
-        //verifica se o dado foi removido
-        if (rBegin(web->nodes[i].list, dado) == SUCCESS) {
-            return SUCCESS;
+        if (sBegin(web->nodes[i].list, dado) == SUCCESS) {
+            if (rBegin(web->nodes[i].list, dado) == SUCCESS) {
+                return balanceWebList(web); // Rebalanceia após remoção
+            }
         }
     }
-
     return FAIL;
-    
 }
 
 //função para buscar dado
@@ -197,24 +198,59 @@ int WLbalanceada(pweblist web) {
     return balanceWebList(web);
 }
 
-// Função auxiliar para verificar o balanceamento da WebList
+// Função auxiliar para redistribuir elementos entre as folhas
+void redistributeElements(pweblist web) {
+    int total_elements = 0;
+    for (int i = 0; i < web->totalLeaves; i++) {
+        total_elements += countElements(web->nodes[i].list);
+    }
+
+    int target_count = total_elements / web->totalLeaves;
+    int remainder = total_elements % web->totalLeaves;
+
+    // Redistribui os elementos para atingir o balanceamento
+    for (int i = 0; i < web->totalLeaves; i++) {
+        while (countElements(web->nodes[i].list) > target_count + (i < remainder ? 1 : 0)) {
+            int temp;
+            sBegin(web->nodes[i].list, &temp);
+            rBegin(web->nodes[i].list, &temp);
+
+            // Encontra a próxima folha com espaço
+            for (int j = 0; j < web->totalLeaves; j++) {
+                if (countElements(web->nodes[j].list) < target_count + (j < remainder ? 1 : 0)) {
+                    iEnd(web->nodes[j].list, &temp);
+                    break;
+                }
+            }
+        }
+    }
+}
+
+// Função para verificar e ajustar o balanceamento da WebList
 int balanceWebList(pweblist web) {
     if (!web) return FAIL;
 
     int min_elements = countElements(web->nodes[0].list);
     int max_elements = min_elements;
+
     for (int i = 1; i < web->totalLeaves; i++) {
         int elements = countElements(web->nodes[i].list);
         if (elements < min_elements) min_elements = elements;
         if (elements > max_elements) max_elements = elements;
     }
-    return (max_elements - min_elements <= 1) ? SUCCESS : FAIL;
+
+    // Se a diferença excede 1, redistribui os elementos
+    if (max_elements - min_elements > 1) {
+        redistributeElements(web);
+    }
+    return SUCCESS;
 }
 
 int calculateNodes(int level) {
-    int nodes = 1; // Começa com o nó raiz
-    for (int i = 0; i < level; i++) {
-        nodes *= 8; // Multiplica por 8 para cada nível
+    // Implementar lógica para calcular o número de nós folha, que é 8^level+1, sem função pow
+    int result = 8;
+    for (int i = 1; i < level; i++) {
+        result *= 8;
     }
-    return nodes;
+    return result;
 }
