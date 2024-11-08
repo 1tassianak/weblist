@@ -10,18 +10,11 @@ typedef struct weblist_node {
 } WebListNode;
 
 // Estrutura da WebList
-typedef struct weblist {
+struct weblist {
     WebListNode *nodes; // Array de nós
     int level; // Nível da árvore
-    int totalLeaves; // Número de nós folha
+    int node_count; // Número de nós folha
     int sizedata; // Tamanho dos dados
-} weblist;
-
-// Funções auxiliares
-int balanceWebList(pweblist web);
-int calculateNodes(int level);
-// Função auxiliar para redistribuir elementos entre as folhas
-void redistributeElements(pweblist web);
-
+};
 
 #endif

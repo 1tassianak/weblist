@@ -1,73 +1,108 @@
 #include "main.h"
+#include <stdlib.h>
+
+void printInt(void *data) {
+    printf("  Dado: %d\n", *(int*)data);
+}
+
+void printDouble(void *data) {
+    printf("  Dado: %.1f\n", *(double*)data);
+}
+
+void printString(void *data) {
+    printf("  Dado: %s\n", *(char**)data);
+}
 
 int main() {
-    pweblist web; // Ponteiro para a WebList
-    int level = 0; // Defina o nível da estrutura
-    int sizedata = sizeof(int); // Tamanho dos dados a serem armazenados
+    pweblist webInt;
+    pweblist webDouble;
+    pweblist webString;
 
-    // Criar a WebList
-    if (cWL(&web, level, sizedata) == FAIL) {
-        fprintf(stderr, "Falha ao criar a WebList\n");
-        return EXIT_FAILURE;
-    }
+    
+    if (cWL(&webInt, sizeof(int)) == SUCCESS) {
+        printf("Testing integer WebList:\n");
 
-    // Conjunto inicial de dados para inserir na WebList
-    int dados_iniciais[] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27};
-    int n_dados = sizeof(dados_iniciais) / sizeof(dados_iniciais[0]);
-
-    // Inserir dados iniciais
-    printf("Inserindo dados iniciais:\n");
-    for (int i = 0; i < n_dados; i++) {
-        if (iDado(web, &dados_iniciais[i]) == FAIL) {
-            fprintf(stderr, "Falha ao inserir dado %d\n", dados_iniciais[i]);
-        } else {
-            printf("Inserido: %d\n", dados_iniciais[i]);
+        int intValues[] = {1, 2, 3, 4, 5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30};
+        for (int i = 0; i < 30; i++) {
+            if (iDado(webInt, &intValues[i]) == FAIL) {
+                printf("Failed to insert integer: %d\n", intValues[i]);
+            }
+            else {
+                printf("Inserted integer: %d\n", intValues[i]);
+            }
         }
-    }
-
-    // Imprimir a WebList após as inserções iniciais
-    printf("Estrutura da WebList após inserções iniciais:\n");
-    pLista(web);
-
-    // Operações de remoção complexas para testar o balanceamento
-    int dados_remocao[] = {1,2,3,4};
-    int n_remocoes = sizeof(dados_remocao) / sizeof(dados_remocao[0]);
-
-    printf("Removendo dados:\n");
-    for (int i = 0; i < n_remocoes; i++) {
-        if (rDado(web, &dados_remocao[i]) == FAIL) {
-            printf("Dado %d não encontrado para remoção\n", dados_remocao[i]);
+        
+        int searchInt = 3;
+        if (bDado(webInt, &searchInt) == SUCCESS) {
+            printf("Found integer: %d\n", searchInt);
         } else {
-            printf("Removido: %d\n", dados_remocao[i]);
+            printf("Integer not found: %d\n", searchInt);
         }
+
+        pLista(webInt, printInt);
+        
+        dWL(&webInt);
     }
 
-    // Imprimir a WebList após as remoções
-    printf("Estrutura da WebList após remoções:\n");
-    pLista(web);
+    
+    if (cWL(&webDouble, sizeof(double)) == SUCCESS) {
+        printf("\nTesting double WebList:\n");
 
-    // Inserir mais dados para ver como a estrutura se reequilibra
-    int novos_dados[] = {1,2,3,4};
-    int n_novos_dados = sizeof(novos_dados) / sizeof(novos_dados[0]);
+        double doubleValues[] = {1.1, 2.2, 3.3};
+        for (int i = 0; i < 3; i++) {
+            if (iDado(webDouble, &doubleValues[i]) == FAIL) {
+                printf("Failed to insert double: %.1f\n", doubleValues[i]);
+            }
+            else {
+                printf("Inserted double: %.1f\n", doubleValues[i]);
+            }
+        }
 
-    printf("Inserindo novos dados:\n");
-    for (int i = 0; i < n_novos_dados; i++) {
-        if (iDado(web, &novos_dados[i]) == FAIL) {
-            fprintf(stderr, "Falha ao inserir dado %d\n", novos_dados[i]);
+        double searchDouble = 2.2;
+        if (bDado(webDouble, &searchDouble) == SUCCESS) {
+            printf("Found double: %.1f\n", searchDouble);
         } else {
-            printf("Inserido: %d\n", novos_dados[i]);
+            printf("Double not found: %.1f\n", searchDouble);
         }
+
+        pLista(webDouble, printDouble);
+        
+        dWL(&webDouble);
     }
 
-    // Imprimir a WebList após novas inserções
-    printf("Estrutura da WebList após novas inserções:\n");
-    pLista(web);
+    
+    if (cWL(&webString, sizeof(char*)) == SUCCESS) {
+        printf("\nTesting string WebList:\n");
 
-    // Destruir a WebList para liberar memória
-    if (dWL(&web) == FAIL) {
-        fprintf(stderr, "Falha ao destruir a WebList\n");
-        return EXIT_FAILURE;
+        char *stringValues[] = {"Hello", "World", "Test"};
+        for (int i = 0; i < 3; i++) {
+            if (iDado(webString, &stringValues[i]) == FAIL) {
+                printf("Failed to insert string: %s\n", stringValues[i]);
+            }
+            else {
+                printf("Inserted string: %s\n", stringValues[i]);
+            }
+        }
+
+        char *searchString = "World";
+        if (bDado(webString, &searchString) == SUCCESS) {
+            printf("Found string: %s\n", searchString);
+        } else {
+            printf("String not found: %s\n", searchString);
+        }
+
+        pLista(webString, printString);
+        
+        dWL(&webString);
     }
 
-    return EXIT_SUCCESS;
+    
+    printf("\nTesting empty WebList:\n");
+    pweblist emptyWeb;
+    if (cWL(&emptyWeb, sizeof(int)) == SUCCESS) {
+        pLista(emptyWeb, printInt);
+        dWL(&emptyWeb);
+    }
+
+    return 0;
 }
