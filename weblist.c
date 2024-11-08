@@ -158,16 +158,42 @@
     int rDado(pweblist web, void *dado) {
         if (!web || !dado) return FAIL;
 
-        // Tenta remover o dado em cada folha
-        for (int i = 0; i < web->node_count ; i++) {
-            if (sBegin(web->nodes[i].list, dado) == SUCCESS) {
-                if (rBegin(web->nodes[i].list, dado) == SUCCESS) {
-                    return balanceWebList(web); // Rebalanceia após remoção
+        // Percorre cada nó da WebList
+        for (int i = 0; i < web->node_count; i++) {
+            if (web->nodes[i].list) {
+                // Tenta remover o dado da DDLL do nó atual
+                void *temp_data = malloc(web->sizedata);
+                if (!temp_data) return FAIL; // Verifica se a alocação foi bem-sucedida
+
+                // Começa a buscar o dado na DDLL
+                if (sBegin(web->nodes[i].list, temp_data) == SUCCESS) {
+                    // Verifica se o primeiro elemento é o que queremos remover
+                    if (memcmp(temp_data, dado, web->sizedata) == 0) {
+                        // Chama a função para remover o primeiro elemento
+                        rBegin(web->nodes[i].list, temp_data);
+                        free(temp_data); // Libera a memória alocada
+                        balanceWebListAfterRemoval(web); // Balanceia a WebList após a remoção
+                        return SUCCESS; // Retorna sucesso
+                    }
+
+                    // Continua buscando o dado em outras posições
+                    int pos = 0;
+                    while (sPosition(web->nodes[i].list, ++pos, temp_data) == SUCCESS) {
+                        if (memcmp(temp_data, dado, web->sizedata) == 0) {
+                            // Dado encontrado, remove-o
+                            rPosition(web->nodes[i].list, pos, temp_data);
+                            free(temp_data); // Libera a memória alocada
+                            balanceWebListAfterRemoval(web); // Balanceia a WebList após a remoção
+                            return SUCCESS; // Retorna sucesso
+                        }
+                    }
                 }
+                free(temp_data); // Libera a memória alocada se não encontrou
             }
         }
-        return FAIL;
+        return FAIL; // Retorna falha se o dado não foi encontrado em nenhuma lista
     }
+
 
     // Função para buscar dado na WebList
     int bDado(pweblist web, void *dado) {
@@ -255,7 +281,13 @@
     // Funções da WebList
     int nroEleNoFolha(pweblist web, int *retorno) {
         if (!web) return FAIL;
-        *retorno = countElements(web->nodes[0].list);
+        int temp = 0;
+        for (int i = 0; i < web->node_count; i++) {
+            temp += countElements(web->nodes[i].list);
+        }
+
+        *retorno = temp;
+
         return SUCCESS;
     }
 
@@ -267,10 +299,11 @@
 
     int nroEleWL(pweblist web, int *retorno) {
         if (!web) return FAIL;
-        *retorno = 0;
+        int temp = 0;
         for (int i = 0; i < web->node_count; i++) {
-            *retorno += countElements(web->nodes[i].list);
+            temp += countElements(web->nodes[i].list);
         }
+
         return SUCCESS;
     }
 
@@ -316,72 +349,52 @@
         return (max_elements - min_elements <= 1) ? SUCCESS : FAIL;
     }
 
-    //FUNÇÕES DE BALANCEAMENTO ALTERNATIVAS
-    // FUNÇÃO DE BALANCEAMENTO POR REDISTRIBUIÇÃO DE DADOS
-    int redistributeBalance(pweblist web) {
+    int balanceWebListAfterRemoval(pweblist web) {
         if (!web) return FAIL;
 
-        // OBTÉM O TOTAL DE ELEMENTOS EM TODA A WEBLIST
+        // Calcula o total de elementos em todos os nós
         int total_elements = 0;
-        int element;
-        
-        // CRIA UM BUFFER TEMPORÁRIO PARA ARMAZENAR TODOS OS DADOS
-        int buffer[100]; // AJUSTE O TAMANHO CONFORME NECESSÁRIO
-        int buffer_index = 0;
-
         for (int i = 0; i < web->node_count; i++) {
-            int count = countElements(web->nodes[i].list);
-            while (count > 0) {
-                if (rBegin(web->nodes[i].list, &element) == SUCCESS) {
-                    buffer[buffer_index++] = element;
+            total_elements += countElements(web->nodes[i].list);
+        }
+
+        // Calcula a média de elementos por nó (arredondada para baixo)
+        int avg_elements_per_node = total_elements / web->node_count;
+
+        printf("Média de elementos por nó: %d\n", avg_elements_per_node);
+
+        // Redistribui os elementos para preencher nós vazios
+        for (int i = 0; i < web->node_count; i++) {
+            while (countElements(web->nodes[i].list) > avg_elements_per_node) {
+                // Encontra o próximo nó vazio ou com menos que a média
+                int j = (i + 1) % web->node_count;
+                while (countElements(web->nodes[j].list) >= avg_elements_per_node && j != i) {
+                    j = (j + 1) % web->node_count;
                 }
-                count--;
+
+                if (j == i) break; // Não há mais nós para redistribuir
+
+                // Move o elemento do final do nó `i` para o início do nó `j`
+                void *data_to_move = malloc(web->sizedata);
+                if (!data_to_move) return FAIL;
+
+                if (rEnd(web->nodes[i].list, data_to_move) == FAIL) {
+                    free(data_to_move);
+                    return FAIL;
+                }
+
+                if (iBegin(web->nodes[j].list, data_to_move) == FAIL) {
+                    free(data_to_move);
+                    return FAIL;
+                }
+
+                free(data_to_move);
             }
         }
 
-        // CALCULA O NÚMERO MÉDIO DE ELEMENTOS QUE CADA NÓ DEVE TER
-        int target_elements_per_node = buffer_index / web->node_count;
-
-        // REDISTRIBUI OS ELEMENTOS ARMAZENADOS NO BUFFER PARA CADA NÓ
-        buffer_index = 0;
-        for (int i = 0; i < web->node_count; i++) {
-            for (int j = 0; j < target_elements_per_node && buffer_index < 100; j++) {
-                iBegin(web->nodes[i].list, &buffer[buffer_index++]);
-            }
-        }
-
-        return SUCCESS;
+    return SUCCESS;
     }
 
-    // IMPLEMENTAÇÃO DA FUNÇÃO HYPOTÉTICA `calculateHeight`
-    int calculateHeight(pweblist web, int node_index) {
-        int height = 0;
-        int current_index = node_index;
-
-        // Em uma árvore octogonal, a altura aumenta conforme cada camada é preenchida
-        while (current_index < web->node_count) {
-            height++;
-            current_index = current_index * 8 + 1;  // Avança para o próximo "filho" em uma estrutura octogonal
-        }
-        return height;
-    }
-
-
-    // FUNÇÃO DE BALANCEAMENTO POR ALTURA DA ÁRVORE
-    int heightBasedBalance(pweblist web) {
-        if (!web) return FAIL;
-
-        int ideal_height = (int)log2(web->node_count) / log2(8) + 1;
-
-        for (int i = 0; i < web->node_count; i++) {
-            int height = calculateHeight(web, i);
-            if (height > ideal_height) {
-                redistributeBalance(web);  // Redistribuição quando a altura ultrapassa o ideal
-                break;
-            }
-        }
-        return SUCCESS;
-    }
 
     // FUNÇÃO PARA EXIBIR A ESTRUTURA DA WEBLIST APÓS O BALANCEAMENTO
     void exibirWebList(pweblist web) {
