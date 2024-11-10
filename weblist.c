@@ -3,47 +3,47 @@
     #include <stdlib.h>   // Para malloc e free
     #include "weblist_pub.h"
     #include "weblist_pri.h"
-    #include <math.h> // INCLUI <math.h> PARA USO DA FUNÇÃO log2
+   
 
-    // Declaração da função balanceWebList para evitar declaração implícita
+// Declaração de funções auxiliares para balanceamento, evitando declarações implícitas
     int balanceWebList(pweblist web);
-
     int balanceWebListAfterRemoval(pweblist web);
 
 
     //função para criar a weblist e inicializar cada nó com uma DDLL vazia
     int cWL(ppweblist web, int sizedata) {
-        //aloca memória para a weblist
+        //aloca memória para a estrutura da weblist
         *web = (pweblist)malloc(sizeof(struct weblist));
         //verifica se deu certo a alocação, se não deu, falha
         if (!(*web)) return FAIL;
 
-        //define o nível da weblist
+        //define o nível inicial da weblist como 0
         (*web)->level = 0;
         //define o número de nós folhas (nesse caso, 8)
         (*web)->node_count = 8;
         //aloca espaço para os nós
         (*web)->nodes = (WebListNode *)malloc(8 * sizeof(WebListNode));
-        //verifica se o espaço foi alocado
+        //verifica se a alocação para os nós falhou
         if (!(*web)->nodes) {
-            //se falhar, libera memória
+            //se falhar, libera memória da weblist
             free(*web);
             return FAIL;
         }
 
         //inicializa cada nó com uma chave e uma DDLL vazia
         for (int i = 0; i < (*web)->node_count; i++) {
-            //define uma chave para cada nó
+            //define uma chave única para cada nó
             (*web)->nodes[i].key = i;
             //cria uma DDLL vazia para cada nó
             if (cDDLL(&((*web)->nodes[i].list), sizedata) == FAIL) {
-                //em caso de falha, limpa o que foi alocado e retorna erro
+                //se a criação da DDLL falhar, limpa todas as alocações e retorna erro
                 for (int j = 0; j < i; j++) {
+                    //destrói qualquer DDLL alocada previamente
                     dDDLL(&((*web)->nodes[j].list));
                 }
-                //libera os nós
+                //libera a memória alocada para os nós
                 free((*web)->nodes);
-                //libera a weblist
+                //libera a estrutura principal da WebList
                 free(*web);
                 return FAIL;
             }
@@ -51,19 +51,28 @@
             printf("Nó %d criado com sucesso.\n", i);
         }
 
+        //armazena o tamanho dos dados de cada nó
         (*web)->sizedata = sizedata;
+
+        //retorna SUCCESS se a WebList foi criada corretamente
         return SUCCESS;
     }
 
+    //funções de travessia de árvore para percorrer nós em pré-ordem, in-ordem e pós-ordem
+
     /// PERCURSO PRÉ-ORDEM COM VERIFICAÇÃO DE LIMITES
     void preOrderTraversal(pweblist web, int node_index) {
+        //verifica se a WebList ou o índice do nó é válido.
         if (!web || node_index >= web->node_count) return;
+        //imprime o nó atual
         printf("Visitando nó %d em pré-ordem (chave: %d)\n", node_index, web->nodes[node_index].key);
         
         // PERCORRE ATÉ 8 "FILHOS" POSSÍVEIS COM VERIFICAÇÃO DE LIMITES
         for (int i = 1; i <= 2 && node_index * 8 + i < web->node_count; i++) {
+            //calcula o índice do filho
             int child_index = node_index * 8 + i;
             if (child_index < web->node_count) {
+                //chama a função de forma recursiva para o filho
                 preOrderTraversal(web, child_index);
             }
         }
@@ -71,6 +80,7 @@
 
     // PERCURSO EM ORDEM COM VERIFICAÇÃO DE LIMITES
     void inOrderTraversal(pweblist web, int node_index) {
+        //verifica se a WebList ou o índice do nó é válido
         if (!web || node_index >= web->node_count) return;
 
         // VISITA O PRIMEIRO "FILHO" SIMULADO
@@ -88,6 +98,7 @@
 
     // PERCURSO PÓS-ORDEM COM VERIFICAÇÃO DE LIMITES
     void postOrderTraversal(pweblist web, int node_index) {
+        //verifica se a WebList ou o índice do nó é válido
         if (!web || node_index >= web->node_count) return;
 
         // VISITA O PRIMEIRO "FILHO" SIMULADO
@@ -103,16 +114,15 @@
         printf("Visitando nó %d em pós-ordem (chave: %d)\n", node_index, web->nodes[node_index].key);
     }
 
-    //função para destruir a weblist
+    //função para destruir a weblist, liberando toda a memória associada
     int dWL(pweblist *web) {
-        //verifica se a weblist existe, se não existe, falha
+        //verifica se a WebList ou o ponteiro para a WebList são nulos
         if (!web || !(*web)) return FAIL;
-        //percorre todos os nós da weblist
+        //percorre e destrói cada DDLL associada a cada nó da WebList
         for (int i = 0; i < (*web)->node_count; i++) {
             // se a lista do nó existir
-            
             if ((*web)->nodes[i].list) {
-                //destrói a lista
+                //destrói a DDLL do nó atual
                 dDDLL(&((*web)->nodes[i].list));
                 
             }
@@ -121,7 +131,7 @@
         free((*web)->nodes);
         //libera a estrutura principal da weblist
         free(*web);
-        //define o ponteiro como NULL
+        //define o ponteiro como NULL para evitar acessos inválidos
         *web = NULL;
 
         return SUCCESS;
@@ -134,126 +144,150 @@
     //Ajudando a "balancear" a carga de dados entre os nós, fazendo com que cada nó receba uma quantidade de dados mais ou menos igual ao longo do tempo.
     //Depois utiliza iBegin para inserir os dados e verifica o balanceamento após cada inserção
     int iDado(pweblist web, void *dado) {
-        if (!web) return FAIL;  // Verifica se a WebList existe
+        if (!web) return FAIL;  //verifica se a WebList é válida
 
         // Distribui a carga entre os nós
+        //variável estática para rastrear o índice do nó
         static int node_index = 0;
+        //avança o índice de forma cíclica para distribuir dados
         node_index = (node_index + 1) % web->node_count;
 
+        //aloca memória para copiar o dado
         void *data_copy = malloc(web->sizedata);
+        //verifica a alocação
         if (!data_copy) return FAIL;
+        //copia o dado para o espaço alocado
         memcpy(data_copy, dado, web->sizedata);
 
-        // Insere o dado no início da DDLL do nó especificado
+        //insere o dado no início da DDLL
         int resultado = iBegin(web->nodes[node_index].list, data_copy);
         if (resultado == SUCCESS) {
-            // Verifica e ajusta o balanceamento após a inserção
+            //verifica e ajusta o balanceamento após a inserção
             resultado = balanceWebList(web);
         }
 
+        //libera a memória do dado temporário
         free(data_copy);
-        
+        //retorna o resultado da inserção
         return resultado;
     }
 
 
-    // Função para remover dado da WebList
+    //função para remover um dado específico da WebList
     int rDado(pweblist web, void *dado) {
+        //verifica se a WebList ou o dado são válidos
         if (!web || !dado) return FAIL;
 
         // Percorre cada nó da WebList
         for (int i = 0; i < web->node_count; i++) {
+            //se a lista existe, busca o dado
             if (web->nodes[i].list) {
-                // Tenta remover o dado da DDLL do nó atual
+                //aloca espaço para comparação
                 void *temp_data = malloc(web->sizedata);
-                if (!temp_data) return FAIL; // Verifica se a alocação foi bem-sucedida
+                if (!temp_data) return FAIL; //verifica a alocação
 
-                // Começa a buscar o dado na DDLL
+                //começa a buscar o dado na DDLL
                 if (sBegin(web->nodes[i].list, temp_data) == SUCCESS) {
-                    // Verifica se o primeiro elemento é o que queremos remover
+                    //compara o primeiro dado
                     if (memcmp(temp_data, dado, web->sizedata) == 0) {
-                        // Chama a função para remover o primeiro elemento
+                        //remove se for encontrado.
                         rBegin(web->nodes[i].list, temp_data);
-                        free(temp_data); // Libera a memória alocada
-                        balanceWebListAfterRemoval(web); // Balanceia a WebList após a remoção
-                        return SUCCESS; // Retorna sucesso
-                    }
-
-                    // Continua buscando o dado em outras posições
-                    int pos = 0;
-                    while (sPosition(web->nodes[i].list, ++pos, temp_data) == SUCCESS) {
-                        if (memcmp(temp_data, dado, web->sizedata) == 0) {
-                            // Dado encontrado, remove-o
-                            rPosition(web->nodes[i].list, pos, temp_data);
-                            free(temp_data); // Libera a memória alocada
-                            balanceWebListAfterRemoval(web); // Balanceia a WebList após a remoção
-                            return SUCCESS; // Retorna sucesso
-                        }
-                    }
-                }
-                free(temp_data); // Libera a memória alocada se não encontrou
-            }
-        }
-        return FAIL; // Retorna falha se o dado não foi encontrado em nenhuma lista
-    }
-
-
-    // Função para buscar dado na WebList
-    int bDado(pweblist web, void *dado) {
-        if (!web || !dado) return FAIL;
-
-        for (int i = 0; i < web->node_count; i++) {
-            if (web->nodes[i].list) {
-                void *temp_data = malloc(web->sizedata);
-                int pos = 0;
-
-                if (sBegin(web->nodes[i].list, temp_data) == SUCCESS) {
-                    if (memcmp(temp_data, dado, web->sizedata) == 0) {
-                        free(temp_data);
+                        free(temp_data); //libera a memória alocada
+                        balanceWebListAfterRemoval(web); //balanceia a WebList após a remoção
                         return SUCCESS;
                     }
 
+                    // Continua buscando o dado em outras posições
+                    //variável para rastrear a posição
+                    int pos = 0;
+                    //continua buscando.
                     while (sPosition(web->nodes[i].list, ++pos, temp_data) == SUCCESS) {
                         if (memcmp(temp_data, dado, web->sizedata) == 0) {
-                            free(temp_data);
+                            //dado encontrado, remove-o
+                            rPosition(web->nodes[i].list, pos, temp_data);
+                            free(temp_data); //libera a memória alocada
+                            balanceWebListAfterRemoval(web); //balanceia a WebList após a remoção
                             return SUCCESS;
                         }
                     }
                 }
+                free(temp_data); //libera a memória alocada se não encontrou
+            }
+        }
+        return FAIL; //retorna falha se o dado não foi encontrado em nenhuma lista
+    }
+
+
+    //função para buscar dado específico na WebList
+    int bDado(pweblist web, void *dado) {
+        //verifica se a WebList ou o dado são válidos
+        if (!web || !dado) return FAIL;
+        //percorre cada nó da WebList
+        for (int i = 0; i < web->node_count; i++) {
+            //verifica se a DDLL do nó atual não é nula
+            if (web->nodes[i].list) {
+                //aloca memória para a comparação de dados
+                void *temp_data = malloc(web->sizedata);
+                //verifica se a alocação de memória foi bem-sucedida.
+                if (!temp_data) return FAIL; 
+
+                //pega o dado no início da DDLL
+                if (sBegin(web->nodes[i].list, temp_data) == SUCCESS) {
+                    //compara o dado buscado com o primeiro elemento
+                    if (memcmp(temp_data, dado, web->sizedata) == 0) {
+                        //libera a memória temporária
+                        free(temp_data);
+                        //retorna sucesso se o dado foi encontrado
+                        return SUCCESS;
+                    }
+                    //variável para rastrear a posição durante a busca
+                    int pos = 0;
+                    //percorre repetidamente a DDLL buscando o elemento na posição desejada
+                    while (sPosition(web->nodes[i].list, ++pos, temp_data) == SUCCESS) {
+                        //compara o conteúdo de dois blocos de memória
+                        if (memcmp(temp_data, dado, web->sizedata) == 0) {
+                            //libera a memória temporária
+                            free(temp_data);
+                            //retorna sucesso se o dado foi encontrado
+                            return SUCCESS;
+                        }
+                    }
+                }
+                //libera a memória se o dado não for encontrado na DDLL do nó
                 free(temp_data);
             }
         }
+        //retorna falha se o dado não foi encontrado em nenhum nó
         return FAIL;
     }
 
 
-    // Função para percorrer e exibir a lista de dados na WebList
+    // Função para percorrer e imprimir todos os dados na WebList
     int pLista(pweblist web, void (*printFunc)(void*)) {
-        if (!web) return FAIL;
+        //verifica se a WebList e a função de impressão são válidas
+        if (!web || !printFunc) return FAIL;
+        //percorre cada nó da WebList para acessar a DDLL associada
 
         for (int i = 0; i < web->node_count; i++) {
-            printf("Nó %d:\n", i);
-            if (web->nodes[i].list) {
-                void *temp_data = malloc(web->sizedata);
-                int pos = 0;
-
-                if (sBegin(web->nodes[i].list, temp_data) == SUCCESS) {
-                    printFunc(temp_data);
-
-                    while (sPosition(web->nodes[i].list, ++pos, temp_data) == SUCCESS) {
-                        printFunc(temp_data);
-                    }
-                } else {
-                    printf("  DDLL vazia.\n");
-                }
-                free(temp_data);
+            //imprime o índice do nó
+            printf("Nó %d:\n", i); 
+            //verifica se a DDLL está vazia
+            if (empty(web->nodes[i].list) == SUCCESS) { 
+                printf("  DDLL vazia.\n"); //informa que a lista associada ao nó está vazia
             } else {
-                printf("  DDLL vazia.\n");
+                int pos = 0; //variável para rastrear a posição do elemento
+                void *temp_data = malloc(web->sizedata); //aloca memória para armazenar os dados
+                if (!temp_data) return FAIL; //retorna falha se a alocação de memória falhar
+
+                //percorre e imprime cada dado na DDLL do nó usando a função fornecida
+                while (sPosition(web->nodes[i].list, pos++, temp_data) == SUCCESS) {
+                    printFunc(temp_data); //chama a função de impressão fornecida para o dado atual
+                }
+                free(temp_data); //libera a memória temporária após a impressão
             }
         }
-
-        return SUCCESS;
-    }
+    return SUCCESS; //retorna sucesso após percorrer e imprimir todos os nós
+}
 
 
     // Funções de nós folha

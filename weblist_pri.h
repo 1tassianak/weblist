@@ -5,16 +5,16 @@
 
 // Estrutura do nó da WebList
 typedef struct weblist_node {
-    int key;
-    pDDLL list; // Lista associada
+    int key; // Chave identificadora para o nó, usada para diferenciar cada nó
+    pDDLL list; // Ponteiro para uma DDLL associada ao nó, que armazenará os dados
 } WebListNode;
 
 // Estrutura da WebList
 struct weblist {
-    WebListNode *nodes; // Array de nós
-    int level; // Nível da árvore
-    int node_count; // Número de nós folha
-    int sizedata; // Tamanho dos dados
+    WebListNode *nodes; // Array de nós da WebList; cada nó possui uma chave e uma DDLL associadas
+    int level; // Nível da árvore da WebList (pode ser usado para controle de profundidade)
+    int node_count; //Contagem de nós-folha na WebList, indicando quantos nós estão alocados
+    int sizedata; // Tamanho dos dados a serem armazenados em cada nó da DDLL
 };
 
 #endif

@@ -41,7 +41,7 @@ void postOrderTraversal(pweblist web, int node_index);
 // DECLARAÇÕES DAS FUNÇÕES DE BALANCEAMENTO ALTERNATIVAS
 int redistributeBalance(pweblist web);  // BALANCEAMENTO POR REDISTRIBUIÇÃO
 int heightBasedBalance(pweblist web);   // BALANCEAMENTO POR ALTURA
-// DECLARAÇÃO DA FUNÇÃO `exibirWebList` PARA EXIBIR A ESTRUTURA DA WEBLIST
+// FUNÇÃO PARA EXIBIR A ESTRUTURA DA WEBLIST
 void exibirWebList(pweblist web);
 
 #endif
