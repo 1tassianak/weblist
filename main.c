@@ -6,6 +6,10 @@ void printInt(void *data) {
     printf("  Dado: %d\n", *(int*)data);
 }
 
+void printLongLongInt(void *data) {
+    printf("  Dado: %lld\n", *(long long int*)data);
+}
+
 void printDouble(void *data) {
     printf("  Dado: %.1f\n", *(double*)data);
 }
@@ -17,26 +21,29 @@ void printString(void *data) {
 // Função para testar a WebList de inteiros com mais cenários
 void testIntegerWebList() {
     pweblist webInt;
-    if (cWL(&webInt, sizeof(int)) == SUCCESS) {
+    if (cWL(&webInt, sizeof(long long int)) == SUCCESS) {
         printf("Testing integer WebList:\n");
 
-        int intValues[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
-        for (int i = 0; i < 15; i++) {
+        long long int intValues[] = {
+            9223372036854775807LL, -2, 3, 4, 5, 6, 9223372036854775806LL, 8, 9, 10, 11, 12, 13, 14, -9223372036854775807LL
+        };
+
+        for (size_t i = 0; i < sizeof(intValues) / sizeof(long long int); i++) {
             if (iDado(webInt, &intValues[i]) == FAIL) {
-                printf("Failed to insert integer: %d\n", intValues[i]);
+                printf("Failed to insert integer: %lld\n", intValues[i]);
             } else {
-                printf("Inserted integer: %d\n", intValues[i]);
+                printf("Inserted integer: %lld\n", intValues[i]);
             }
         }
 
-        int searchInt = 3;
+        long long int searchInt = 9223372036854775806LL;
         if (bDado(webInt, &searchInt) == SUCCESS) {
-            printf("Found integer: %d\n", searchInt);
+            printf("Found integer: %lld\n", searchInt);
         } else {
-            printf("Integer not found: %d\n", searchInt);
+            printf("Integer not found: %lld\n", searchInt);
         }
 
-        pLista(webInt, printInt);
+        pLista(webInt, (void (*)(void *))printLongLongInt);
 
         // Remoção de elementos e balanceamento
         printf("Removing integer 5...\n");
@@ -59,10 +66,10 @@ void testIntegerWebList() {
             printf("WebList is not balanced after removal.\n");
         }
 
-        pLista(webInt, printInt);
+        pLista(webInt, (void (*)(void *))printLongLongInt);
 
         // Testes de borda
-        int nonExistentValue = 99;
+        long long int nonExistentValue = 99;
         printf("Attempting to remove non-existent integer 99...\n");
         if (rDado(webInt, &nonExistentValue) == FAIL) {
             printf("Confirmed failure when trying to remove non-existent integer.\n");
@@ -79,14 +86,15 @@ void testIntegerWebList() {
     }
 }
 
+
 // Função para testar a WebList de doubles com mais cenários
 void testDoubleWebList() {
     pweblist webDouble;
     if (cWL(&webDouble, sizeof(double)) == SUCCESS) {
         printf("\nTesting double WebList:\n");
 
-        double doubleValues[] = {1.1, 2.2, 3.3};
-        for (int i = 0; i < 3; i++) {
+        double doubleValues[] = {1.1, 2.2, -3.3, 651651.65846541};
+        for (int i = 0; i < 4; i++) {
             if (iDado(webDouble, &doubleValues[i]) == FAIL) {
                 printf("Failed to insert double: %.1f\n", doubleValues[i]);
             } else {
@@ -120,7 +128,7 @@ void testStringWebList() {
     if (cWL(&webString, sizeof(char*)) == SUCCESS) {
         printf("\nTesting string WebList:\n");
 
-        char *stringValues[] = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"};
+        char *stringValues[] = {"Asdfsd454f5s4d4f", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"};
         for (int i = 0; i < 26; i++) {
             if (iDado(webString, &stringValues[i]) == FAIL) {
                 printf("Failed to insert string: %s\n", stringValues[i]);
@@ -190,6 +198,38 @@ void testEmptyWebList() {
     }
 }
 
+// Função para testar entrada tipo float
+void printFloat(void *data) {
+    printf("  Dado: %.2f\n", *(float*)data);
+}
+
+void testFloatWebList() {
+    pweblist webFloat;
+    if (cWL(&webFloat, sizeof(float)) == SUCCESS) {
+        printf("\nTesting float WebList:\n");
+
+        float floatValues[] = {1.1f, 2.2f, 3.3f, 4.4f};
+        for (size_t i = 0; i < sizeof(floatValues) / sizeof(float); i++) {
+            if (iDado(webFloat, &floatValues[i]) == FAIL) {
+                printf("Failed to insert float: %.2f\n", floatValues[i]);
+            } else {
+                printf("Inserted float: %.2f\n", floatValues[i]);
+            }
+        }
+
+        float searchFloat = 2.2f;
+        if (bDado(webFloat, &searchFloat) == SUCCESS) {
+            printf("Found float: %.2f\n", searchFloat);
+        } else {
+            printf("Float not found: %.2f\n", searchFloat);
+        }
+
+        pLista(webFloat, printFloat);
+        dWL(&webFloat); // Liberação da memória da WebList de floats
+    }
+}
+
+
 // Função para testar uma WebList não inicializada (NULL pointer)
 void testNullWebList() {
     printf("\nTesting null WebList:\n");
@@ -213,12 +253,48 @@ void testNullWebList() {
     }
 }
 
+void testPreOrder(pweblist web) {
+        printf("\nTesting pre-order traversal:\n");
+        preOrderTraversal(web, 0);  // Começa a partir do nó raiz
+}
+
+void testInOrder(pweblist web) {
+    printf("\nTesting in-order traversal:\n");
+    inOrderTraversal(web, 0);  // Começa a partir do nó raiz
+}
+
+void testPostOrder(pweblist web) {
+    printf("\nTesting post-order traversal:\n");
+    postOrderTraversal(web, 0);  // Começa a partir do nó raiz
+}
+
+
+
 int main() {
     testIntegerWebList();
     testDoubleWebList();
     testStringWebList();
+    testFloatWebList();
     testEmptyWebList();
     testNullWebList();
+
+     // Cria a WebList com dados de exemplo
+    pweblist webInt;
+    cWL(&webInt, sizeof(int));
+
+    // Adiciona alguns dados para o teste
+    int values[] = {1654, -2, 35554, 4, 5};
+    for (int i = 0; i < 5; i++) {
+        iDado(webInt, &values[i]);
+    }
+
+    // Testes de percursos
+    testPreOrder(webInt);
+    testInOrder(webInt);
+    testPostOrder(webInt);
+
+    // Libera a WebList
+    dWL(&webInt);
 
     return 0;
 }

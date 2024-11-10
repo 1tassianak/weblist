@@ -8,6 +8,9 @@
     // Declaração da função balanceWebList para evitar declaração implícita
     int balanceWebList(pweblist web);
 
+    int balanceWebListAfterRemoval(pweblist web);
+
+
     //função para criar a weblist e inicializar cada nó com uma DDLL vazia
     int cWL(ppweblist web, int sizedata) {
         //aloca memória para a weblist
@@ -304,6 +307,8 @@
             temp += countElements(web->nodes[i].list);
         }
 
+        *retorno = temp;
+
         return SUCCESS;
     }
 
@@ -337,6 +342,7 @@
         return balanceWebList(web);
     }
 
+    /*
     // Função auxiliar para verificar o balanceamento da WebList
     int balanceWebList(pweblist web) {
         int min_elements = countElements(web->nodes[0].list);
@@ -347,7 +353,65 @@
             if (elements > max_elements) max_elements = elements;
         }
         return (max_elements - min_elements <= 1) ? SUCCESS : FAIL;
+    }*/
+
+    //Função de verificação de balanceamento que garante que a regra:
+    // - a soma do numero de dados incluıdos nas DDLLs por no da arvore nao pode variar mais do que 1 elemento
+    // seja cumprida
+    int balanceWebList(pweblist web) {
+    if (!web) return FAIL;
+
+    // Calcula o total de elementos em todos os nós
+    int total_elements = 0;
+    for (int i = 0; i < web->node_count; i++) {
+        total_elements += countElements(web->nodes[i].list);
     }
+
+    // Calcula a quantidade ideal de elementos por nó
+    int ideal_count = total_elements / web->node_count;
+    int extra = total_elements % web->node_count; // Número de nós que devem ter 1 elemento extra
+
+    // Redistribui os elementos para que cada nó tenha `ideal_count` ou `ideal_count + 1` elementos
+    for (int i = 0; i < web->node_count; i++) {
+        int current_count = countElements(web->nodes[i].list);
+        while (current_count > ideal_count + (i < extra ? 1 : 0)) {
+            // Encontra um nó com menos elementos para transferir
+            int j = (i + 1) % web->node_count;
+            while (countElements(web->nodes[j].list) >= ideal_count + (j < extra ? 1 : 0) && j != i) {
+                j = (j + 1) % web->node_count;
+            }
+
+            if (j == i) break; // Todos os nós estão balanceados
+
+            // Move o elemento do nó `i` para o nó `j`
+            void *data_to_move = malloc(web->sizedata);
+            if (!data_to_move) return FAIL;
+
+            if (rEnd(web->nodes[i].list, data_to_move) == SUCCESS) {
+                if (iBegin(web->nodes[j].list, data_to_move) == FAIL) {
+                    free(data_to_move);
+                    return FAIL;
+                }
+            }
+
+            free(data_to_move);
+            current_count = countElements(web->nodes[i].list); // Atualiza a contagem
+        }
+    }
+
+    // Verifica novamente se a diferença entre o maior e o menor é no máximo 1 após redistribuição
+    int min_elements = countElements(web->nodes[0].list);
+    int max_elements = min_elements;
+    for (int i = 1; i < web->node_count; i++) {
+        int elements = countElements(web->nodes[i].list);
+        if (elements < min_elements) min_elements = elements;
+        if (elements > max_elements) max_elements = elements;
+    }
+
+    // Verifica se a condição de diferença máxima de 1 é atendida
+    return (max_elements - min_elements <= 1) ? SUCCESS : FAIL;
+}
+
 
     int balanceWebListAfterRemoval(pweblist web) {
         if (!web) return FAIL;
