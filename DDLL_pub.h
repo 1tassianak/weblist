@@ -1,6 +1,8 @@
 #define SUCCESS 0
 #define FAIL -1
 
+#include "DDLL_pri.h"
+
 typedef struct DDLL *pDDLL, **ppDDLL;
 
 // Funções básicas de uma DDLL (DISPONÍVEIS)

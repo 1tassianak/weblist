@@ -2,19 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct DDLLNode {
-    void *data;
-    struct DDLLNode *prev;
-    struct DDLLNode *next;
-} DDLLNode;
-
-struct DDLL {
-    DDLLNode *head;
-    DDLLNode *tail;
-    int size;          // Tamanho de cada elemento
-    int count;         // Número de elementos na lista
-};
-
 // Função para criar a DDLL
 int cDDLL(ppDDLL pp, int sizedata) {
     *pp = (pDDLL)malloc(sizeof(struct DDLL));
@@ -40,9 +27,9 @@ int dDDLL(ppDDLL pp) {
 int cleanDDLL(pDDLL p) {
     if (!p) return FAIL;
 
-    DDLLNode *current = p->head;
+    struct DDLLNode *current = p->head;
     while (current) {
-        DDLLNode *next = current->next;
+        struct DDLLNode *next = current->next;
         free(current->data);
         free(current);
         current = next;
@@ -54,24 +41,24 @@ int cleanDDLL(pDDLL p) {
 
 // Função para buscar o primeiro elemento (sBegin)
 int sBegin(pDDLL p, void *element) {
-    if (!p || !p->head) return FAIL;  // Falha se a lista ou o head estiver vazio
+    if (!p || !p->head) return FAIL;
 
-    memcpy(element, p->head->data, p->size);  // Copia o dado do head para element
+    memcpy(element, p->head->data, p->size);
     return SUCCESS;
 }
 
 // Função para buscar o elemento na posição N (sPosition)
 int sPosition(pDDLL p, int N, void *element) {
-    if (!p || N < 0 || N >= p->count) return FAIL;  // Verifica limites
+    if (!p || N < 0 || N >= p->count) return FAIL;
 
-    DDLLNode *current = p->head;
+    struct DDLLNode *current = p->head;
     for (int i = 0; i < N; i++) {
         if (!current) return FAIL;
         current = current->next;
     }
 
     if (current) {
-        memcpy(element, current->data, p->size);  // Copia o dado para element
+        memcpy(element, current->data, p->size);
         return SUCCESS;
     }
     return FAIL;
@@ -81,7 +68,7 @@ int sPosition(pDDLL p, int N, void *element) {
 int iBegin(pDDLL p, void *element) {
     if (!p) return FAIL;
 
-    DDLLNode *newNode = (DDLLNode *)malloc(sizeof(DDLLNode));
+    struct DDLLNode *newNode = (struct DDLLNode *)malloc(sizeof(struct DDLLNode));
     if (!newNode) return FAIL;
 
     newNode->data = malloc(p->size);
@@ -107,7 +94,7 @@ int iBegin(pDDLL p, void *element) {
 int iEnd(pDDLL p, void *element) {
     if (!p) return FAIL;
 
-    DDLLNode *newNode = (DDLLNode *)malloc(sizeof(DDLLNode));
+    struct DDLLNode *newNode = (struct DDLLNode *)malloc(sizeof(struct DDLLNode));
     if (!newNode) return FAIL;
 
     newNode->data = malloc(p->size);
@@ -136,12 +123,12 @@ int iPosition(pDDLL p, int N, void *element) {
     if (N == 0) return iBegin(p, element);
     if (N == p->count) return iEnd(p, element);
 
-    DDLLNode *current = p->head;
+    struct DDLLNode *current = p->head;
     for (int i = 0; i < N; i++) {
         current = current->next;
     }
 
-    DDLLNode *newNode = (DDLLNode *)malloc(sizeof(DDLLNode));
+    struct DDLLNode *newNode = (struct DDLLNode *)malloc(sizeof(struct DDLLNode));
     if (!newNode) return FAIL;
 
     newNode->data = malloc(p->size);
@@ -163,7 +150,7 @@ int iPosition(pDDLL p, int N, void *element) {
 int rBegin(pDDLL p, void *element) {
     if (!p || !p->head) return FAIL;
 
-    DDLLNode *node = p->head;
+    struct DDLLNode *node = p->head;
     memcpy(element, node->data, p->size);
 
     p->head = node->next;
@@ -183,7 +170,7 @@ int rBegin(pDDLL p, void *element) {
 int rEnd(pDDLL p, void *element) {
     if (!p || !p->tail) return FAIL;
 
-    DDLLNode *node = p->tail;
+    struct DDLLNode *node = p->tail;
     memcpy(element, node->data, p->size);
 
     p->tail = node->prev;
@@ -206,7 +193,7 @@ int rPosition(pDDLL p, int N, void *element) {
     if (N == 0) return rBegin(p, element);
     if (N == p->count - 1) return rEnd(p, element);
 
-    DDLLNode *current = p->head;
+    struct DDLLNode *current = p->head;
     for (int i = 0; i < N; i++) {
         current = current->next;
     }
