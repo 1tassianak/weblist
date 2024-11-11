@@ -1,7 +1,6 @@
 #include "main.h"
 #include <stdlib.h>
 
-// Funções de impressão
 void printInt(void *data) {
     printf("  Dado: %d\n", *(int*)data);
 }
@@ -14,14 +13,15 @@ void printString(void *data) {
     printf("  Dado: %s\n", *(char**)data);
 }
 
-// Função para testar a WebList de inteiros com mais cenários
-void testIntegerWebList() {
+int main() {
     pweblist webInt;
-    if (cWL(&webInt, sizeof(int)) == SUCCESS) {
+
+    // Testando WebList de inteiros
+    if (cWL(&webInt, 0, sizeof(int)) == SUCCESS) {
         printf("Testing integer WebList:\n");
 
-        int intValues[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
-        for (int i = 0; i < 15; i++) {
+        int intValues[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30};
+        for (int i = 0; i < 30; i++) {
             if (iDado(webInt, &intValues[i]) == FAIL) {
                 printf("Failed to insert integer: %d\n", intValues[i]);
             } else {
@@ -37,188 +37,109 @@ void testIntegerWebList() {
         }
 
         pLista(webInt, printInt);
+        
+        int key = 2;
+        pDDLL ddll = NULL;
 
-        // Remoção de elementos e balanceamento
-        printf("Removing integer 5...\n");
-        if (rDado(webInt, &intValues[4]) == SUCCESS) {
-            printf("Removed integer 5 successfully.\n");
+        if (cpLista(webInt, key, &ddll) == SUCCESS) {
+            printf("Copied list from key %d:\n", key);
+            int count = countElements(ddll);
+            printf("  Number of elements: %d\n", count);
         } else {
-            printf("Failed to remove integer 5.\n");
+            printf("Failed to copy list from key %d\n", key);
+        }
+    
+        pDDLL ptr_rmLista = NULL;
+        
+        if (rmLista(webInt, key, &ptr_rmLista) == SUCCESS) {
+            printf("Removed list from key %d:\n", key);
+            int count = countElements(ptr_rmLista);
+            printf("  Number of elements: %d\n", count);
+        } else {
+            printf("Failed to remove list from key %d\n", key);
+        }
+    
+        if (nvLista(webInt, key) == SUCCESS) {
+            printf("Created new list for key %d\n", key);
+        } else {
+            printf("Failed to create new list for key %d\n", key);
         }
 
-        printf("Removing integer 13...\n");
-        if (rDado(webInt, &intValues[12]) == SUCCESS) {
-            printf("Removed integer 13 successfully.\n");
+        int eleCount;
+        if (nroEleNoFolha(webInt->nodes[0], &eleCount) == SUCCESS) {
+            printf("Number of elements in leaf node: %d\n", eleCount);
         } else {
-            printf("Failed to remove integer 13.\n");
+            printf("Failed to get number of elements in leaf node\n");
         }
 
+        int leafCount;
+        if (nroNoFolha(webInt, &leafCount) == SUCCESS) {
+            printf("Number of leaf nodes: %d\n", leafCount);
+        } else {
+            printf("Failed to get number of leaf nodes\n");
+        }
+
+        int totalEleCount;
+        if (nroEleWL(webInt, &totalEleCount) == SUCCESS) {
+            printf("Total number of elements: %d\n", totalEleCount);
+        } else {
+            printf("Failed to get total number of elements\n");
+        }
+        
+        pDDLL keyList;
+        if (cDDLL(&keyList, sizeof(int)) == FAIL) {
+            printf("Failed to create DDLL for keys\n");
+            dWL(&webInt);
+            return -1;
+        }
+
+        if (lstChaves(webInt, &keyList) == SUCCESS) {
+            printf("List of keys:\n");
+            int keyData;
+            int position = 0;
+            while (sPosition(keyList, position, &keyData) == SUCCESS) {
+                printf("  Key %d: %d\n", position, keyData);
+                position++;
+            }
+        } else {
+            printf("Failed to get list of keys\n");
+        }
+
+        // remove 25 and 17 and insert 31 and then print the weblist again
+        int removeInt = 25;
+        if (rDado(webInt, &removeInt) == SUCCESS) {
+            printf("Removed integer: %d\n", removeInt);
+        } else {
+            printf("Failed to remove integer: %d\n", removeInt);
+        }
+
+        removeInt = 17;
+        if (rDado(webInt, &removeInt) == SUCCESS) {
+            printf("Removed integer: %d\n", removeInt);
+        } else {
+            printf("Failed to remove integer: %d\n", removeInt);
+        }
+
+        int newInt = 31;
+        if (iDado(webInt, &newInt) == SUCCESS) {
+            printf("Inserted integer: %d\n", newInt);
+        } else {
+            printf("Failed to insert integer: %d\n", newInt);
+        }
+
+        // balanced?
         if (WLbalanceada(webInt) == SUCCESS) {
-            printf("WebList is balanced after removal.\n");
+            printf("WebList is balanced\n");
         } else {
-            printf("WebList is not balanced after removal.\n");
+            printf("WebList is not balanced\n");
         }
 
         pLista(webInt, printInt);
-
-        // Testes de borda
-        int nonExistentValue = 99;
-        printf("Attempting to remove non-existent integer 99...\n");
-        if (rDado(webInt, &nonExistentValue) == FAIL) {
-            printf("Confirmed failure when trying to remove non-existent integer.\n");
-        }
-
-        printf("Attempting to insert duplicate integer 8...\n");
-        if (iDado(webInt, &intValues[7]) == SUCCESS) {
-            printf("Inserted duplicate integer 8 successfully (depends on implementation if allowed).\n");
-        } else {
-            printf("Failed to insert duplicate integer 8.\n");
-        }
-
-        dWL(&webInt); // Liberação da memória da WebList de inteiros
-    }
-}
-
-// Função para testar a WebList de doubles com mais cenários
-void testDoubleWebList() {
-    pweblist webDouble;
-    if (cWL(&webDouble, sizeof(double)) == SUCCESS) {
-        printf("\nTesting double WebList:\n");
-
-        double doubleValues[] = {1.1, 2.2, 3.3};
-        for (int i = 0; i < 3; i++) {
-            if (iDado(webDouble, &doubleValues[i]) == FAIL) {
-                printf("Failed to insert double: %.1f\n", doubleValues[i]);
-            } else {
-                printf("Inserted double: %.1f\n", doubleValues[i]);
-            }
-        }
-
-        double searchDouble = 2.2;
-        if (bDado(webDouble, &searchDouble) == SUCCESS) {
-            printf("Found double: %.1f\n", searchDouble);
-        } else {
-            printf("Double not found: %.1f\n", searchDouble);
-        }
-
-        pLista(webDouble, printDouble);
-
-        // Teste de borda: Remoção de um double inexistente
-        double nonExistentDouble = 4.4;
-        printf("Attempting to remove non-existent double 4.4...\n");
-        if (rDado(webDouble, &nonExistentDouble) == FAIL) {
-            printf("Confirmed failure when trying to remove non-existent double.\n");
-        }
-
-        dWL(&webDouble); // Liberação da memória da WebList de doubles
-    }
-}
-
-// Função para testar a WebList de strings com mais cenários
-void testStringWebList() {
-    pweblist webString;
-    if (cWL(&webString, sizeof(char*)) == SUCCESS) {
-        printf("\nTesting string WebList:\n");
-
-        char *stringValues[] = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"};
-        for (int i = 0; i < 26; i++) {
-            if (iDado(webString, &stringValues[i]) == FAIL) {
-                printf("Failed to insert string: %s\n", stringValues[i]);
-            } else {
-                printf("Inserted string: %s\n", stringValues[i]);
-            }
-        }
-
-        char *searchString = "Z";
-        if (bDado(webString, &searchString) == SUCCESS) {
-            printf("Found string: %s\n", searchString);
-        } else {
-            printf("String not found: %s\n", searchString);
-        }
-
-        pLista(webString, printString);
-
-        // Remoção de strings e verificação de balanceamento
-        printf("Removing string 'A'...\n");
-        if (rDado(webString, &stringValues[0]) == SUCCESS) {
-            printf("Removed string 'A' successfully.\n");
-        } else {
-            printf("Failed to remove string 'A'.\n");
-        }
-
-        printf("Removing string 'D'...\n");
-        if (rDado(webString, &stringValues[3]) == SUCCESS) {
-            printf("Removed string 'D' successfully.\n");
-        } else {
-            printf("Failed to remove string 'D'.\n");
-        }
-
-        printf("Removing string 'Z'...\n");
-        if (rDado(webString, &stringValues[25]) == SUCCESS) {
-            printf("Removed string 'Z' successfully.\n");
-        } else {
-            printf("Failed to remove string 'Z'.\n");
-        }
-
-        if (WLbalanceada(webString) == SUCCESS) {
-            printf("WebList is balanced after removal.\n");
-        } else {
-            printf("WebList is not balanced after removal.\n");
-        }
-
-        pLista(webString, printString);
         
-        dWL(&webString); // Liberação da memória da WebList de strings
+        dDDLL(&keyList);
+        dDDLL(&ptr_rmLista);
+        dWL(&webInt);
     }
-}
-
-// Função para testar uma WebList vazia
-void testEmptyWebList() {
-    printf("\nTesting empty WebList:\n");
-    pweblist emptyWeb;
-    if (cWL(&emptyWeb, sizeof(int)) == SUCCESS) {
-        pLista(emptyWeb, printInt);
-
-        // Teste de remoção em lista vazia
-        int nonExistentValue = 0;
-        printf("Attempting to remove integer from empty list...\n");
-        if (rDado(emptyWeb, &nonExistentValue) == FAIL) {
-            printf("Confirmed failure when trying to remove integer from empty list.\n");
-        }
-
-        dWL(&emptyWeb);
-    }
-}
-
-// Função para testar uma WebList não inicializada (NULL pointer)
-void testNullWebList() {
-    printf("\nTesting null WebList:\n");
-    pweblist nullWeb = NULL;
-
-    // Tentativa de operações em uma WebList não inicializada
-    int value = 10;
-    printf("Attempting to insert into null WebList...\n");
-    if (iDado(nullWeb, &value) == FAIL) {
-        printf("Confirmed failure when trying to insert into null WebList.\n");
-    }
-
-    printf("Attempting to remove from null WebList...\n");
-    if (rDado(nullWeb, &value) == FAIL) {
-        printf("Confirmed failure when trying to remove from null WebList.\n");
-    }
-
-    printf("Attempting to destroy null WebList...\n");
-    if (dWL(&nullWeb) == FAIL) {
-        printf("Confirmed failure when trying to destroy null WebList.\n");
-    }
-}
-
-int main() {
-    testIntegerWebList();
-    testDoubleWebList();
-    testStringWebList();
-    testEmptyWebList();
-    testNullWebList();
 
     return 0;
 }

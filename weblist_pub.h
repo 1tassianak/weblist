@@ -10,7 +10,7 @@
 typedef struct weblist * pweblist , ** ppweblist ;
 
 // Funcoes operacionais
-int cWL (ppweblist web, int sizedata) ; // criar a estrutura ;
+int cWL (ppweblist web,int level, int sizedata) ; // criar a estrutura ;
 int dWL (ppweblist web) ; // destruir a estrutura ;
 
 // Funcoes focada nos dados
@@ -26,11 +26,13 @@ int rmLista (pweblist web , int chave , ppDDLL rmLista ) ; // retornar a lista �
 int nvLista (pweblist web , int chave ) ; // criar uma DDLL vazia para a chave recebida como parametro ;
 
 // Funcoes da WebList
-int nroEleNoFolha (pweblist web , int * retorno ) ; // retornar o numero de elementos em um no - folha especifico ( soma de elementos de cada lista do no - folha )
+int nroEleNoFolha (WebListNode web , int * retorno ) ; // retornar o numero de elementos em um no - folha especifico ( soma de elementos de cada lista do no - folha )
 int nroNoFolha (pweblist web , int* retorno ); // retornar o numero total de nos - folha da estrutura
 int nroEleWL (pweblist web , int * retorno ); // retornar o numero total de elementos cadastrados na webList
 int lstChaves (pweblist web , ppDDLL retorno ); // retornar uma lista com todas as chaves da WebList .
 int WLbalanceada (pweblist web) ; // retornar SUCCESS se a webList estiver balanceada e, FAIL , caso contrario .
+int balanceWebList (pweblist web) ; // retornar SUCCESS se a webList estiver balanceada e, FAIL , caso contrario .
+int redistribuir(WebListNode *web, int sizedata); // redistribuir os elementos de um nó 
 
 //FUNÇÕES ADICIONAIS ALTERNATIVAS   
 //FUNÇÕES DE PERCURSO PARA A WEBLIST

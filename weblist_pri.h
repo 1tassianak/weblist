@@ -4,17 +4,24 @@
 #include "weblist_pub.h"
 
 // Estrutura do nó da WebList
+typedef struct weblist_list {
+    int key;         // Chave da lista
+    pDDLL list;     // Lista associada
+} WebListList;
+
+// Estrutura da WebList
 typedef struct weblist_node {
-    int key;
-    pDDLL list; // Lista associada
+    struct weblist_node *children[8]; // 8 filhos
+    int is_leaf;                       // Flag para indicar se é um nó folha
+    WebListList lists[8];             // Apenas para nós folha: 8 listas associadas
 } WebListNode;
 
 // Estrutura da WebList
 struct weblist {
     WebListNode *nodes; // Array de nós
-    int level; // Nível da árvore
-    int node_count; // Número de nós folha
-    int sizedata; // Tamanho dos dados
+    int level;          // Nível da árvore
+    int node_count;     // Número de nós folha
+    int sizedata;       // Tamanho dos dados
 };
 
 #endif
