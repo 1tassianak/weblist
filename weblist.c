@@ -9,6 +9,12 @@
     int balanceWebList(pweblist web);
     int balanceWebListAfterRemoval(pweblist web);
 
+//Declaração das funções otimizadas (inserir no main se no weblist pub não puder)
+int rDado_otimizada(pweblist web, void *dado);
+int bDado_otimizada(pweblist web, void *dado);
+int balanceWebList_otimizada(pweblist web);
+int balanceWebListAfterRemoval_otimizada(pweblist web);
+
 
     //função para criar a weblist e inicializar cada nó com uma DDLL vazia
     int cWL(ppweblist web, int sizedata) {
@@ -516,3 +522,258 @@
         }
         printf("Fim da estrutura da WebList\n");
     }
+
+    #include "weblist_pub.h"
+
+// Função que realiza o balanceamento por redistribuição dos elementos entre os nós da WebList
+int redistributeBalance(pweblist web) {
+    if (!web) return FAIL;
+
+    // Calcula o número total de elementos e a média ideal por nó
+    int total_elements = 0;
+    for (int i = 0; i < web->node_count; i++) {
+        total_elements += countElements(web->nodes[i].list);
+    }
+    int ideal_count = total_elements / web->node_count;
+    int extra = total_elements % web->node_count;
+
+    // Redistribui elementos para que cada nó tenha `ideal_count` ou `ideal_count + 1` elementos
+    for (int i = 0; i < web->node_count; i++) {
+        while (countElements(web->nodes[i].list) > ideal_count + (i < extra ? 1 : 0)) {
+            // Encontra um nó com menos elementos para transferir
+            int j = (i + 1) % web->node_count;
+            while (countElements(web->nodes[j].list) >= ideal_count + (j < extra ? 1 : 0) && j != i) {
+                j = (j + 1) % web->node_count;
+            }
+            if (j == i) break;
+
+            // Move o elemento do nó `i` para o nó `j`
+            void *data_to_move = malloc(web->sizedata);
+            if (!data_to_move) return FAIL;
+            if (rEnd(web->nodes[i].list, data_to_move) == SUCCESS) {
+                if (iBegin(web->nodes[j].list, data_to_move) == FAIL) {
+                    free(data_to_move);
+                    return FAIL;
+                }
+            }
+            free(data_to_move);
+        }
+    }
+    return SUCCESS;
+}
+
+// Função que realiza o balanceamento baseado na altura da WebList
+int heightBasedBalance(pweblist web) {
+    if (!web) return FAIL;
+
+    // Assume altura mínima de um nó como a quantidade mínima de elementos em qualquer nó
+    int min_height = countElements(web->nodes[0].list);
+    int max_height = min_height;
+    for (int i = 1; i < web->node_count; i++) {
+        int elements = countElements(web->nodes[i].list);
+        if (elements < min_height) min_height = elements;
+        if (elements > max_height) max_height = elements;
+    }
+
+    // Realiza redistribuição apenas se a altura varia mais do que 1 entre os nós
+    if (max_height - min_height > 1) {
+        return redistributeBalance(web); // Usa o balanceamento por redistribuição como fallback
+    }
+
+    return SUCCESS; // Já está balanceada em altura
+}
+
+
+//FUNÇÕES OTIMIZADAS
+
+#define HASH_TABLE_SIZE 8  // Define o tamanho da tabela hash para 8 entradas
+
+// Estrutura para o índice de hash para localização rápida dos nós
+typedef struct hash_entry {
+    int key;            // Chave do nó na WebList
+    pDDLL list;         // Ponteiro para a lista associada ao nó
+    struct hash_entry* next; // Ponteiro para a próxima entrada na tabela hash (tratamento de colisão)
+} hash_entry;
+
+// Declaração da tabela hash global
+hash_entry* hash_table[HASH_TABLE_SIZE]; // Tabela hash para acesso rápido aos nós
+
+// Função de hash para calcular o índice na tabela com base na chave
+int hash(int key) {
+    return key % HASH_TABLE_SIZE; // Calcula o índice usando o operador de módulo
+}
+
+// Função para inserir um nó na tabela hash
+void insert_into_hash(int key, pDDLL list) {
+    int index = hash(key); // Calcula o índice na tabela hash
+    hash_entry* new_entry = (hash_entry*)malloc(sizeof(hash_entry)); // Aloca memória para uma nova entrada
+    new_entry->key = key;       // Define a chave da entrada
+    new_entry->list = list;     // Associa a lista ao nó
+    new_entry->next = hash_table[index]; // Insere a entrada na posição calculada
+    hash_table[index] = new_entry; // Atualiza o índice da tabela hash com a nova entrada
+}
+
+// Função para buscar um nó na tabela hash
+pDDLL search_in_hash(int key) {
+    int index = hash(key);          // Calcula o índice na tabela hash
+    hash_entry* entry = hash_table[index]; // Acessa a posição na tabela hash
+    while (entry) {                   // Itera sobre as entradas (tratamento de colisão)
+        if (entry->key == key)        // Verifica se a chave corresponde
+            return entry->list;       // Retorna a lista associada ao nó
+        entry = entry->next;          // Move para a próxima entrada em caso de colisão
+    }
+    return NULL;                      // Retorna NULL se o nó não for encontrado
+}
+
+// Função para limpar a tabela hash
+void clear_hash() {
+    for (int i = 0; i < HASH_TABLE_SIZE; i++) { // Percorre cada entrada na tabela hash
+        hash_entry* entry = hash_table[i];      // Obtém a entrada na posição atual
+        while (entry) {                         // Itera sobre as entradas encadeadas
+            hash_entry* temp = entry;           // Armazena a entrada atual temporariamente
+            entry = entry->next;                // Move para a próxima entrada
+            free(temp);                         // Libera a entrada atual
+        }
+        hash_table[i] = NULL;                   // Define a posição na tabela hash como NULL
+    }
+}
+
+// Função otimizada para remover um dado específico na WebList
+int rDado_otimizada(pweblist web, void *dado) {
+    if (!web || !dado) return FAIL;     // Verifica se a WebList e o dado são válidos
+
+    // Percorre cada nó da WebList para encontrar e remover o dado
+    for (int i = 0; i < web->node_count; i++) { // Itera sobre cada nó
+        pDDLL list = search_in_hash(i);         // Busca a lista associada ao nó via hash
+        if (list) {                             // Verifica se a lista existe
+            void *temp_data = malloc(web->sizedata); // Aloca memória para comparação de dados
+            if (!temp_data) return FAIL;              // Verifica a alocação de memória
+
+            // Itera sobre a lista buscando o dado a partir do início
+            int pos = 0;                       // Inicializa a posição de busca
+            if (sBegin(list, temp_data) == SUCCESS) { // Move para o início da lista
+                do {
+                    if (memcmp(temp_data, dado, web->sizedata) == 0) { // Compara os dados
+                        if (rPosition(list, pos, temp_data) == SUCCESS) { // Remove o dado da posição
+                            free(temp_data);                // Libera a memória temporária
+                            balanceWebListAfterRemoval_otimizada(web); // Balanceia após remoção
+                            return SUCCESS;                 // Retorna sucesso se o dado foi removido
+                        } else {
+                            free(temp_data);                // Libera a memória em caso de erro
+                            return FAIL;                    // Falha ao remover
+                        }
+                    }
+                    pos++; // Incrementa a posição
+                } while (sPosition(list, pos, temp_data) == SUCCESS); // Continua até o fim da lista
+            }
+            free(temp_data);                         // Libera a memória temporária se o dado não foi encontrado
+        }
+    }
+    return FAIL;                                     // Retorna falha se o dado não foi encontrado
+}
+
+
+
+// Função otimizada para busca de um dado específico
+int bDado_otimizada(pweblist web, void *dado) {
+    if (!web || !dado) return FAIL;      // Verifica se a WebList e o dado são válidos
+
+    // Usa a tabela hash para busca rápida
+    for (int i = 0; i < web->node_count; i++) { // Percorre cada nó da WebList
+        pDDLL list = search_in_hash(i);         // Busca a lista associada ao nó via hash
+        if (list) {                             // Verifica se a lista existe
+            void *temp_data = malloc(web->sizedata); // Aloca memória para comparação de dados
+            if (!temp_data) return FAIL;              // Verifica a alocação de memória
+
+            if (sBegin(list, temp_data) == SUCCESS) { // Inicia a busca pelo dado no começo da lista
+                if (memcmp(temp_data, dado, web->sizedata) == 0) { // Compara os dados
+                    free(temp_data);              // Libera a memória temporária
+                    return SUCCESS;               // Retorna sucesso se o dado foi encontrado
+                }
+                int pos = 0;                      // Inicializa a posição para busca adicional
+                while (sPosition(list, ++pos, temp_data) == SUCCESS) { // Continua buscando na lista
+                    if (memcmp(temp_data, dado, web->sizedata) == 0) { // Compara dados na posição atual
+                        free(temp_data);            // Libera a memória temporária
+                        return SUCCESS;             // Retorna sucesso se o dado foi encontrado
+                    }
+                }
+            }
+            free(temp_data);                    // Libera a memória temporária se o dado não foi encontrado
+        }
+    }
+    return FAIL;                               // Retorna falha se o dado não foi encontrado
+}
+
+// Função de balanceamento otimizado em lote
+int balanceWebList_otimizada(pweblist web) {
+    if (!web) return FAIL;          // Verifica se a WebList é válida
+
+    int total_elements = 0;         // Inicializa a contagem total de elementos
+    for (int i = 0; i < web->node_count; i++) { // Conta o total de elementos em todos os nós
+        total_elements += countElements(web->nodes[i].list); // Soma os elementos do nó atual
+    }
+
+    // Calcula o número ideal de elementos por nó
+    int ideal_count = total_elements / web->node_count; // Determina o número ideal de elementos por nó
+    int extra = total_elements % web->node_count; // Calcula o número de nós que precisam de um elemento extra
+
+    // Redistribui os elementos em lote para balanceamento
+    for (int i = 0; i < web->node_count; i++) { // Percorre cada nó para balanceamento
+        int current_count = countElements(web->nodes[i].list); // Conta os elementos no nó atual
+        while (current_count > ideal_count + (i < extra ? 1 : 0)) { // Enquanto o nó tiver mais que o ideal
+            int j = (i + 1) % web->node_count; // Encontra o próximo nó para redistribuição
+            while (countElements(web->nodes[j].list) >= ideal_count + (j < extra ? 1 : 0) && j != i) {
+                j = (j + 1) % web->node_count; // Continua buscando um nó com menos elementos
+            }
+            if (j == i) break; // Sai do loop se não houver nós para redistribuir
+
+            void *data_to_move = malloc(web->sizedata); // Aloca memória para mover dados
+            if (!data_to_move) return FAIL;             // Verifica a alocação de memória
+
+            if (rEnd(web->nodes[i].list, data_to_move) == SUCCESS) { // Remove o dado do nó atual
+                if (iBegin(web->nodes[j].list, data_to_move) == FAIL) { // Insere o dado no próximo nó
+                    free(data_to_move);       // Libera a memória se a inserção falhar
+                    return FAIL;              // Retorna falha se não conseguir inserir
+                }
+            }
+            free(data_to_move);               // Libera a memória temporária após mover
+            current_count = countElements(web->nodes[i].list); // Atualiza a contagem do nó atual
+        }
+    }
+    return SUCCESS;                           // Retorna sucesso após balanceamento
+}
+
+// Função de balanceamento após remoção em lote
+int balanceWebListAfterRemoval_otimizada(pweblist web) {
+    if (!web) return FAIL; // Verifica se a WebList é válida
+
+    int total_elements = 0; // Inicializa a contagem total de elementos
+    for (int i = 0; i < web->node_count; i++) { // Conta o total de elementos em todos os nós
+        total_elements += countElements(web->nodes[i].list); // Soma os elementos do nó atual
+    }
+    int avg_elements_per_node = total_elements / web->node_count; // Determina o número médio por nó
+
+    for (int i = 0; i < web->node_count; i++) { // Percorre cada nó para balanceamento
+        while (countElements(web->nodes[i].list) > avg_elements_per_node) { // Enquanto o nó tiver mais que a média
+            int j = (i + 1) % web->node_count; // Encontra o próximo nó para redistribuição
+            while (countElements(web->nodes[j].list) >= avg_elements_per_node && j != i) {
+                j = (j + 1) % web->node_count; // Continua buscando um nó com menos elementos
+            }
+            if (j == i) break; // Sai do loop se não houver nós para redistribuir
+
+            void *data_to_move = malloc(web->sizedata); // Aloca memória para mover dados
+            if (!data_to_move) return FAIL;             // Verifica a alocação de memória
+
+            if (rEnd(web->nodes[i].list, data_to_move) == FAIL) { // Remove o dado do nó atual
+                free(data_to_move);            // Libera a memória se a remoção falhar
+                return FAIL;                   // Retorna falha se não conseguir remover
+            }
+            if (iBegin(web->nodes[j].list, data_to_move) == FAIL) { // Insere o dado no próximo nó
+                free(data_to_move);            // Libera a memória se a inserção falhar
+                return FAIL;                   // Retorna falha se não conseguir inserir
+            }
+            free(data_to_move);                // Libera a memória temporária após mover
+        }
+    }
+    return SUCCESS;                            // Retorna sucesso após balanceamento
+}

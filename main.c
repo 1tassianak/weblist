@@ -1,6 +1,12 @@
 #include "main.h"
 #include <stdlib.h>
 
+//Declaração das funções otimizadas
+int rDado_otimizada(pweblist web, void *dado);
+int bDado_otimizada(pweblist web, void *dado);
+int balanceWebList_otimizada(pweblist web);
+int balanceWebListAfterRemoval_otimizada(pweblist web);
+
 // Funções de impressão
 void printInt(void *data) {
     printf("  Dado: %d\n", *(int*)data);
@@ -268,6 +274,39 @@ void testPostOrder(pweblist web) {
     postOrderTraversal(web, 0);  // Começa a partir do nó raiz
 }
 
+void testBalanceFunctions() {
+    pweblist webInt;
+    if (cWL(&webInt, sizeof(int)) == SUCCESS) {
+        // Insere dados como antes
+        int values[] = {1, 2, 3, 4, 5, 6, 7, 8};
+        for (int i = 0; i < 8; i++) {
+            iDado(webInt, &values[i]);
+        }
+
+        // Chame a função redistributeBalance para redistribuir elementos
+        printf("\nApplying redistributeBalance...\n");
+        if (redistributeBalance(webInt) == SUCCESS) {
+            printf("redistributeBalance applied successfully.\n");
+        } else {
+            printf("redistributeBalance failed.\n");
+        }
+
+        // Chame a função heightBasedBalance para balanceamento baseado na altura
+        printf("\nApplying heightBasedBalance...\n");
+        if (heightBasedBalance(webInt) == SUCCESS) {
+            printf("heightBasedBalance applied successfully.\n");
+        } else {
+            printf("heightBasedBalance failed.\n");
+        }
+
+        // Exibe a estrutura após o balanceamento
+        exibirWebList(webInt);
+
+        // Libera a WebList
+        dWL(&webInt);
+    }
+}
+
 
 
 int main() {
@@ -275,8 +314,10 @@ int main() {
     testDoubleWebList();
     testStringWebList();
     testFloatWebList();
+    testBalanceFunctions();
     testEmptyWebList();
     testNullWebList();
+    
 
      // Cria a WebList com dados de exemplo
     pweblist webInt;
